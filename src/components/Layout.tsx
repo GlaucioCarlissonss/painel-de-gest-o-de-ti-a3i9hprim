@@ -1,35 +1,9 @@
 import { useState } from 'react'
-import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import {
-  LayoutDashboard,
-  Box,
-  Ticket,
-  Users,
-  BarChart3,
-  Menu,
-  X,
-  LogOut,
-  Bell,
-  Search,
-  Monitor,
-} from 'lucide-react'
-import { USUARIO_LOGADO, MOCK_LOCACOES, MOCK_CHAMADOS } from '@/data/mockData'
+import { Outlet, useLocation } from 'react-router-dom'
+import { Menu, X, LogOut, Bell, Search, Monitor } from 'lucide-react'
+import { USUARIO_LOGADO } from '@/data/mockData'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-
-interface NavItemConfig {
-  path: string
-  label: string
-  icon: React.ElementType
-  badgeCount?: number
-}
-
-const navItems: NavItemConfig[] = [
-  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/locacoes', label: 'Locações', icon: Box, badgeCount: MOCK_LOCACOES.length },
-  { path: '/chamados', label: 'Chamados', icon: Ticket, badgeCount: MOCK_CHAMADOS.length },
-  { path: '/clientes', label: 'Clientes', icon: Users },
-  { path: '/relatorios', label: 'Relatórios', icon: BarChart3 },
-]
+import SidebarNav from '@/components/SidebarNav'
 
 export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -65,51 +39,7 @@ export default function Layout() {
         </div>
 
         {/* Primary Navigation */}
-        <nav className="flex-1 px-3 py-5 space-y-1.5 overflow-y-auto">
-          <div className="px-3 pb-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            Menu Principal
-          </div>
-          {navItems.map((item) => {
-            const active = isCurrentActive(item.path)
-            const Icon = item.icon
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={handleNavClick}
-                className={`relative flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
-                  active
-                    ? 'text-white bg-slate-800/80 shadow-sm'
-                    : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-                }`}
-              >
-                {/* Active indicator bar on the left */}
-                {active && (
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-500 rounded-r-md" />
-                )}
-                <div className="flex items-center gap-3 min-w-0">
-                  <Icon
-                    className={`w-5 h-5 transition-colors shrink-0 ${
-                      active ? 'text-blue-400' : 'text-[#94A3B8] group-hover:text-white'
-                    }`}
-                  />
-                  <span className="truncate">{item.label}</span>
-                </div>
-                {item.badgeCount !== undefined && (
-                  <span
-                    className={`inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full ${
-                      active
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'
-                    }`}
-                  >
-                    {item.badgeCount}
-                  </span>
-                )}
-              </NavLink>
-            )
-          })}
-        </nav>
+        <SidebarNav onNavigate={handleNavClick} />
 
         {/* Bottom User Card */}
         <div className="p-4 border-t border-slate-800/80 bg-slate-900/40">
@@ -211,44 +141,7 @@ export default function Layout() {
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
-          <div className="px-3 pb-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-            Menu Principal
-          </div>
-          {navItems.map((item) => {
-            const active = isCurrentActive(item.path)
-            const Icon = item.icon
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={handleNavClick}
-                className={`relative flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  active
-                    ? 'text-white bg-slate-800 shadow-sm'
-                    : 'text-[#94A3B8] hover:text-white hover:bg-white/[0.06]'
-                }`}
-              >
-                {active && (
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-blue-500 rounded-r-md" />
-                )}
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-5 h-5 ${active ? 'text-blue-400' : 'text-[#94A3B8]'}`} />
-                  <span>{item.label}</span>
-                </div>
-                {item.badgeCount !== undefined && (
-                  <span
-                    className={`inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full ${
-                      active ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'
-                    }`}
-                  >
-                    {item.badgeCount}
-                  </span>
-                )}
-              </NavLink>
-            )
-          })}
-        </nav>
+        <SidebarNav onNavigate={handleNavClick} compact />
 
         <div className="p-4 border-t border-slate-800 bg-slate-900/40">
           <div className="flex items-center justify-between gap-3 p-2 rounded-lg bg-slate-800/40 border border-slate-800">
