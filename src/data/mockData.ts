@@ -1,5 +1,6 @@
 // Centralização dos dados mockados do Painel de Gestão de TI (ITLoc Gestão)
-// Estruturado para fácil substituição futura por tabelas reais / API
+// Estruturado para fácil substituição futura por tabelas reais / API.
+// Onda 2: central de chamados, SLA, fila inteligente, designação e locações.
 
 export type TipoEquipamento =
   | 'Impressora Laser'
@@ -18,7 +19,7 @@ export interface Locacao {
   dataInicio: string
   dataFim: string
   status: StatusLocacao
-  valorMensal?: string
+  valorMensal: number // BRL
 }
 
 export type TipoChamado =
@@ -26,26 +27,62 @@ export type TipoChamado =
   | 'Suporte N2'
   | 'Implementação'
   | 'Projeto de Infra'
+  | 'Dados'
   | 'Automação'
 
 export type PrioridadeChamado = 'Alta' | 'Média' | 'Baixa'
 
-export type StatusChamado = 'Aberto' | 'Em Atendimento' | 'Escalonado' | 'Resolvido'
+export type StatusChamado = 'Aberto' | 'Em Atendimento' | 'Escalonado' | 'Resolvido' | 'Fechado'
 
 export type StatusSLA = 'dentro' | 'proximo' | 'vencido'
+
+/** Colunas do kanban, na ordem do fluxo */
+export const COLUNAS_KANBAN: StatusChamado[] = [
+  'Aberto',
+  'Em Atendimento',
+  'Escalonado',
+  'Resolvido',
+  'Fechado',
+]
+
+export interface EventoTimeline {
+  id: string
+  dataHora: string // ISO
+  autor: string
+  descricao: string
+  tipo: 'abertura' | 'atualizacao' | 'escalonamento' | 'designacao' | 'resolucao' | 'fechamento'
+}
 
 export interface Chamado {
   id: string
   numero: string
   cliente: string
+  equipamento?: string
   tipo: TipoChamado
   prioridade: PrioridadeChamado
   status: StatusChamado
-  tempoDecorrido: string
-  slaStatus: StatusSLA
-  slaTexto: string
+  aberturaISO: string // ISO da abertura — base do tempo de espera e da fila
+  slaHoras: number // SLA em horas conforme a matriz (projetos: prazo manual)
+  prazoISO: string // ISO do vencimento do SLA
   descricao?: string
-  tecnico?: string
+  tecnico?: string // undefined = aguardando atribuição
+  timeline: EventoTimeline[]
+}
+
+export interface Tecnico {
+  id: string
+  nome: string
+  iniciais: string
+  nivel: 'N1' | 'N2' | 'Gestor'
+  especialidades: TipoChamado[]
+  disponivel: boolean
+}
+
+export interface Cliente {
+  nome: string
+  segmento: string
+  contrato: 'enterprise' | 'padrao'
+  critico: boolean
 }
 
 export interface ItemFila {
@@ -72,7 +109,10 @@ export interface KpiCardData {
   icone: 'monitor' | 'ticket' | 'alert' | 'wrench'
 }
 
-// 4 Cards de Resumo no Topo
+export const fmtBRL = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+
+// 4 Cards de Resumo no Topo (estáticos — natureza do card é editorial)
 export const MOCK_KPIS: KpiCardData[] = [
   {
     id: 'kpi-equipamentos',
@@ -112,37 +152,43 @@ export const MOCK_KPIS: KpiCardData[] = [
   },
 ]
 
-// 7 Locações Ativas conforme especificação
+// Referência temporal dos mocks (mantém o cenário coerente): a data de "hoje".
+// Telas novas usam datas relativas a esta base.
+export const HOJE_MOCK = new Date('2025-06-10T09:00:00')
+
+const d = (iso: string) => new Date(iso)
+
+// 8 Locações conforme especificação (datas em 2025, cenário fixo em junho/2025)
 export const MOCK_LOCACOES: Locacao[] = [
   {
     id: 'loc-1',
     cliente: 'TechNova Sistemas',
     equipamento: 'Impressora Laserjet M404',
     tipoEquipamento: 'Impressora Laser',
-    dataInicio: '05/01/2025',
-    dataFim: '05/04/2025',
+    dataInicio: '05/03/2025',
+    dataFim: '05/06/2025',
     status: 'Ativo',
-    valorMensal: 'R$ 480,00',
+    valorMensal: 480,
   },
   {
     id: 'loc-2',
     cliente: 'Clínica VitalCare',
     equipamento: 'Notebook ThinkPad E14',
     tipoEquipamento: 'Notebook',
-    dataInicio: '12/02/2025',
-    dataFim: '12/05/2025',
+    dataInicio: '12/03/2025',
+    dataFim: '13/06/2025', // vence em 3 dias → alerta
     status: 'Vencendo em 7 dias',
-    valorMensal: 'R$ 620,00',
+    valorMensal: 620,
   },
   {
     id: 'loc-3',
     cliente: 'Construtora Alfa',
     equipamento: 'Computador Dell OptiPlex',
     tipoEquipamento: 'Computador Desktop',
-    dataInicio: '20/11/2024',
-    dataFim: '20/02/2025',
+    dataInicio: '20/12/2024',
+    dataFim: '20/03/2025',
     status: 'Encerrado',
-    valorMensal: 'R$ 550,00',
+    valorMensal: 550,
   },
   {
     id: 'loc-4',
@@ -150,19 +196,19 @@ export const MOCK_LOCACOES: Locacao[] = [
     equipamento: '10× Notebooks Acer',
     tipoEquipamento: 'Notebook',
     dataInicio: '03/03/2025',
-    dataFim: '03/06/2025',
+    dataFim: '03/09/2025',
     status: 'Ativo',
-    valorMensal: 'R$ 3.800,00',
+    valorMensal: 3800,
   },
   {
     id: 'loc-5',
     cliente: 'LogTrans Express',
     equipamento: 'Impressora térmica Zebra',
     tipoEquipamento: 'Impressora Térmica',
-    dataInicio: '15/01/2025',
-    dataFim: '15/04/2025',
-    status: 'Ativo',
-    valorMensal: 'R$ 390,00',
+    dataInicio: '15/03/2025',
+    dataFim: '15/06/2025', // vence em 5 dias → alerta
+    status: 'Vencendo em 7 dias',
+    valorMensal: 390,
   },
   {
     id: 'loc-6',
@@ -170,9 +216,9 @@ export const MOCK_LOCACOES: Locacao[] = [
     equipamento: 'Notebook MacBook Air',
     tipoEquipamento: 'Notebook',
     dataInicio: '28/02/2025',
-    dataFim: '28/03/2025',
-    status: 'Vencendo em 7 dias',
-    valorMensal: 'R$ 890,00',
+    dataFim: '28/05/2025',
+    status: 'Ativo',
+    valorMensal: 890,
   },
   {
     id: 'loc-7',
@@ -182,132 +228,288 @@ export const MOCK_LOCACOES: Locacao[] = [
     dataInicio: '10/12/2024',
     dataFim: '10/03/2025',
     status: 'Encerrado',
-    valorMensal: 'R$ 290,00',
+    valorMensal: 290,
+  },
+  {
+    id: 'loc-8',
+    cliente: 'LogTrans Express',
+    equipamento: 'Notebook Dell Latitude 5440',
+    tipoEquipamento: 'Notebook',
+    dataInicio: '10/05/2025',
+    dataFim: '09/06/2025', // já vencido há 1 dia → alerta crítico
+    status: 'Vencendo em 7 dias',
+    valorMensal: 640,
   },
 ]
 
-// 6 Chamados Recentes conforme especificação
+export const CLIENTES: Cliente[] = [
+  { nome: 'TechNova Sistemas', segmento: 'Tecnologia', contrato: 'enterprise', critico: false },
+  { nome: 'Clínica VitalCare', segmento: 'Saúde', contrato: 'padrao', critico: true },
+  { nome: 'Construtora Alfa', segmento: 'Construção', contrato: 'padrao', critico: false },
+  { nome: 'Escola Saber', segmento: 'Educação', contrato: 'padrao', critico: false },
+  { nome: 'LogTrans Express', segmento: 'Logística', contrato: 'enterprise', critico: true },
+  { nome: 'Advocacia Andrade', segmento: 'Jurídico', contrato: 'padrao', critico: false },
+  { nome: 'Varejo Max', segmento: 'Varejo', contrato: 'padrao', critico: false },
+]
+
+export const TECNICOS: Tecnico[] = [
+  {
+    id: 'tec-1',
+    nome: 'Carlos Andrade',
+    iniciais: 'CA',
+    nivel: 'N1',
+    especialidades: ['Suporte N1'],
+    disponivel: true,
+  },
+  {
+    id: 'tec-2',
+    nome: 'Bruna Teixeira',
+    iniciais: 'BT',
+    nivel: 'N1',
+    especialidades: ['Suporte N1'],
+    disponivel: true,
+  },
+  {
+    id: 'tec-3',
+    nome: 'Felipe Santos',
+    iniciais: 'FS',
+    nivel: 'N2',
+    especialidades: ['Suporte N2', 'Dados'],
+    disponivel: true,
+  },
+  {
+    id: 'tec-4',
+    nome: 'Marina Costa',
+    iniciais: 'MC',
+    nivel: 'N2',
+    especialidades: ['Suporte N2', 'Automação'],
+    disponivel: true,
+  },
+  {
+    id: 'tec-5',
+    nome: 'Rodrigo Lima',
+    iniciais: 'RL',
+    nivel: 'N2',
+    especialidades: ['Implementação', 'Projeto de Infra'],
+    disponivel: false,
+  },
+]
+
+const ev = (
+  id: string,
+  dataHora: string,
+  autor: string,
+  descricao: string,
+  tipo: EventoTimeline['tipo'] = 'abertura',
+): EventoTimeline => ({ id, dataHora, autor, descricao, tipo })
+
+// Chamados — cenário fixo em 10/06/2025 09:00 (aberturas espalhadas pelos dias anteriores)
 export const MOCK_CHAMADOS: Chamado[] = [
   {
     id: 'ch-1',
     numero: '#CT-1042',
     cliente: 'TechNova Sistemas',
+    equipamento: 'Impressora Laserjet M404',
     tipo: 'Suporte N2',
     prioridade: 'Alta',
     status: 'Em Atendimento',
-    tempoDecorrido: 'há 45min',
-    slaStatus: 'dentro',
-    slaTexto: 'Dentro do prazo',
+    aberturaISO: '2025-06-10T08:15:00',
+    slaHoras: 24,
+    prazoISO: '2025-06-11T08:15:00',
     descricao: 'Falha intermitente na conexão de rede e compartilhamento de arquivos',
     tecnico: 'Felipe Santos',
+    timeline: [
+      ev('t1-1', '2025-06-10T08:15:00', 'Portal do Cliente', 'Chamado aberto via portal'),
+      ev(
+        't1-2',
+        '2025-06-10T08:20:00',
+        'Sistema (fila inteligente)',
+        'Prioridade alta definida: equipamento com locação ativa. Designado a Felipe Santos (N2, menor carga).',
+        'designacao',
+      ),
+      ev(
+        't1-3',
+        '2025-06-10T08:40:00',
+        'Felipe Santos',
+        'Em atendimento. Replicando falha com o switch do 2º andar.',
+        'atualizacao',
+      ),
+    ],
   },
   {
     id: 'ch-2',
     numero: '#CT-1041',
     cliente: 'Clínica VitalCare',
+    equipamento: 'Impressora térmica Zebra',
     tipo: 'Suporte N1',
     prioridade: 'Alta',
     status: 'Aberto',
-    tempoDecorrido: 'há 2h',
-    slaStatus: 'vencido',
-    slaTexto: 'SLA vencido',
+    aberturaISO: '2025-06-10T07:00:00',
+    slaHoras: 4,
+    prazoISO: '2025-06-10T11:00:00',
     descricao: 'Impressora térmica de etiquetas do laboratório não inicializa',
-    tecnico: 'Carlos N1',
+    tecnico: 'Carlos Andrade',
+    timeline: [
+      ev('t2-1', '2025-06-10T07:00:00', 'Recepção da Clínica', 'Chamado aberto por telefone'),
+      ev(
+        't2-2',
+        '2025-06-10T07:05:00',
+        'Sistema (classificação automática)',
+        'Cliente crítico (saúde) → prioridade alta. SLA de 4h aplicado.',
+        'atualizacao',
+      ),
+    ],
   },
   {
     id: 'ch-3',
     numero: '#CT-1040',
     cliente: 'Varejo Max',
+    equipamento: 'Tablet Samsung Tab',
     tipo: 'Implementação',
     prioridade: 'Média',
     status: 'Escalonado',
-    tempoDecorrido: 'há 5h',
-    slaStatus: 'proximo',
-    slaTexto: 'Próximo do vencimento',
+    aberturaISO: '2025-06-10T04:00:00',
+    slaHoras: 72,
+    prazoISO: '2025-06-13T04:00:00',
     descricao: 'Configuração do novo PDV e terminal de consulta',
     tecnico: 'Rodrigo Lima',
+    timeline: [
+      ev('t3-1', '2025-06-10T04:00:00', 'Varejo Max', 'Chamado aberto com prazo definido: 3 dias'),
+      ev(
+        't3-2',
+        '2025-06-10T06:30:00',
+        'Rafael Mendes',
+        'Escalonado ao N2: implementação requer acesso administrativo ao servidor da loja.',
+        'escalonamento',
+      ),
+    ],
   },
   {
     id: 'ch-4',
     numero: '#CT-1039',
     cliente: 'Escola Saber',
+    equipamento: '10× Notebooks Acer',
     tipo: 'Automação',
     prioridade: 'Baixa',
     status: 'Em Atendimento',
-    tempoDecorrido: 'há 1 dia',
-    slaStatus: 'dentro',
-    slaTexto: 'Dentro do prazo',
+    aberturaISO: '2025-06-09T05:00:00',
+    slaHoras: 120,
+    prazoISO: '2025-06-14T05:00:00',
     descricao: 'Ajuste no script de backup automático das estações dos alunos',
-    tecnico: 'Marina N2',
+    tecnico: 'Marina Costa',
+    timeline: [
+      ev('t4-1', '2025-06-09T05:00:00', 'Coordenação Escola Saber', 'Chamado aberto'),
+      ev(
+        't4-2',
+        '2025-06-09T09:10:00',
+        'Sistema (fila inteligente)',
+        'Designado a Marina Costa (N2, especialidade Automação).',
+        'designacao',
+      ),
+    ],
   },
   {
     id: 'ch-5',
     numero: '#CT-1038',
     cliente: 'LogTrans Express',
+    equipamento: 'Notebook Dell Latitude 5440',
     tipo: 'Projeto de Infra',
     prioridade: 'Média',
     status: 'Aberto',
-    tempoDecorrido: 'há 3h',
-    slaStatus: 'proximo',
-    slaTexto: 'Próximo do vencimento',
+    aberturaISO: '2025-06-10T06:00:00',
+    slaHoras: 168,
+    prazoISO: '2025-06-17T06:00:00',
     descricao: 'Mapeamento de pontos de rede adicionais para galpão 3',
-    tecnico: 'Aguardando atribuição',
+    tecnico: undefined,
+    timeline: [
+      ev('t5-1', '2025-06-10T06:00:00', 'LogTrans Express', 'Chamado aberto com prazo: 7 dias'),
+      ev(
+        't5-2',
+        '2025-06-10T06:01:00',
+        'Sistema (classificação automática)',
+        'Projeto de infraestrutura: designação manual pelo gestor.',
+        'atualizacao',
+      ),
+    ],
   },
   {
     id: 'ch-6',
     numero: '#CT-1037',
     cliente: 'Advocacia Andrade',
+    equipamento: 'Notebook MacBook Air',
     tipo: 'Suporte N1',
     prioridade: 'Baixa',
     status: 'Resolvido',
-    tempoDecorrido: 'há 2 dias',
-    slaStatus: 'dentro',
-    slaTexto: 'Dentro do prazo',
+    aberturaISO: '2025-06-08T13:00:00',
+    slaHoras: 24,
+    prazoISO: '2025-06-09T13:00:00',
     descricao: 'Instalação de certificado digital e drivers no MacBook',
-    tecnico: 'Carlos N1',
+    tecnico: 'Carlos Andrade',
+    timeline: [
+      ev('t6-1', '2025-06-08T13:00:00', 'Advocacia Andrade', 'Chamado aberto'),
+      ev(
+        't6-2',
+        '2025-06-08T16:45:00',
+        'Carlos Andrade',
+        'Certificado instalado e drivers atualizados.',
+        'resolucao',
+      ),
+    ],
   },
-]
-
-// 3 Chamados na Fila de Atendimento (Seção Inferior)
-export const MOCK_FILA: ItemFila[] = [
   {
-    id: 'fila-1',
-    numero: '#CT-1041',
-    cliente: 'Clínica VitalCare',
+    id: 'ch-7',
+    numero: '#CT-1036',
+    cliente: 'Varejo Max',
+    equipamento: 'Tablet Samsung Tab',
     tipo: 'Suporte N1',
-    prioridade: 'Alta',
-    tecnico: 'Carlos N1',
-    tecnicoIniciais: 'CN',
-    tecnicoAtribuido: true,
-    tempoFila: 'há 2h',
-    slaStatus: 'vencido',
-    slaDescricao: 'há 2h — SLA vencido',
-  },
-  {
-    id: 'fila-2',
-    numero: '#CT-1038',
-    cliente: 'LogTrans Express',
-    tipo: 'Projeto de Infra',
-    prioridade: 'Média',
-    tecnico: 'Atribuir manualmente',
-    tecnicoIniciais: '?',
-    tecnicoAtribuido: false,
-    tempoFila: 'há 3h',
-    slaStatus: 'proximo',
-    slaDescricao: 'há 3h — próx. vencimento',
-  },
-  {
-    id: 'fila-3',
-    numero: '#CT-1039',
-    cliente: 'Escola Saber',
-    tipo: 'Automação',
     prioridade: 'Baixa',
-    tecnico: 'Marina N2',
-    tecnicoIniciais: 'MN',
-    tecnicoAtribuido: true,
-    tempoFila: 'há 4h',
-    slaStatus: 'dentro',
-    slaDescricao: 'há 4h — dentro do prazo',
+    status: 'Fechado',
+    aberturaISO: '2025-06-05T10:00:00',
+    slaHoras: 8,
+    prazoISO: '2025-06-05T18:00:00',
+    descricao: 'Tablet do caixa 2 travando ao emitir cupom',
+    tecnico: 'Bruna Teixeira',
+    timeline: [
+      ev('t7-1', '2025-06-05T10:00:00', 'Varejo Max', 'Chamado aberto'),
+      ev(
+        't7-2',
+        '2025-06-05T14:20:00',
+        'Bruna Teixeira',
+        'Cache limpo e app do caixa reinstalado.',
+        'resolucao',
+      ),
+      ev(
+        't7-3',
+        '2025-06-06T09:00:00',
+        'Rafael Mendes',
+        'Chamado fechado após validação do cliente.',
+        'fechamento',
+      ),
+    ],
+  },
+  {
+    id: 'ch-8',
+    numero: '#CT-1035',
+    cliente: 'Varejo Max',
+    equipamento: 'Tablet Samsung Tab',
+    tipo: 'Suporte N1',
+    prioridade: 'Baixa',
+    status: 'Aberto',
+    aberturaISO: '2025-06-10T05:30:00',
+    slaHoras: 8,
+    prazoISO: '2025-06-10T13:30:00',
+    descricao: 'Tablet do caixa 2 travando novamente ao emitir cupom',
+    tecnico: undefined,
+    timeline: [
+      ev('t8-1', '2025-06-10T05:30:00', 'Varejo Max', 'Chamado aberto'),
+      ev(
+        't8-2',
+        '2025-06-10T05:31:00',
+        'Sistema (classificação automática)',
+        'Chamado repetido no mesmo equipamento em menos de 7 dias (#CT-1036) → escalonamento automático.',
+        'escalonamento',
+      ),
+    ],
   },
 ]
 

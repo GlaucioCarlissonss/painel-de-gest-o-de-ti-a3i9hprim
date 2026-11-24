@@ -2,17 +2,19 @@
 // Blocos autorrotam a cada 15s (setInterval, limpo no unmount), relógio ao vivo
 // com data por extenso em pt-BR, fundo escuro e tipografia grande.
 // Fora do Layout do app: rota /tv sem sidebar nem header.
+// Onda 2: consome o estado compartilhado (AppDataContext) — mesma fonte das telas.
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Tv, X, Clock, AlertTriangle, ListOrdered, CalendarClock, Boxes } from 'lucide-react'
+import { Tv, X, Clock, AlertTriangle, CalendarClock, Boxes, CheckCircle } from 'lucide-react'
+import { PrioridadeChamado, Chamado, Locacao, fmtBRL } from '@/data/mockData'
+import { useAppData } from '@/state/AppDataContext'
 import {
-  MOCK_CHAMADOS,
-  MOCK_FILA,
-  MOCK_LOCACOES,
-  PrioridadeChamado,
-  Chamado,
-} from '@/data/mockData'
-import { CheckCircle } from 'lucide-react'
+  ordenarFila,
+  slaStatusDe,
+  textoRestanteSLA,
+  tempoEspera,
+  alertasLocacao,
+} from '@/lib/regras'
 import { cn } from '@/lib/utils'
 
 const ROTACAO_MS = 15_000
@@ -28,7 +30,7 @@ const BLOCOS: { id: BlocoId; titulo: string; subtitulo: string }[] = [
   {
     id: 'fila',
     titulo: 'Fila de atendimento do momento',
-    subtitulo: 'Próximos chamados e técnicos',
+    subtitulo: 'Ordenada por prioridade → tempo de espera → SLA mais curto',
   },
   { id: 'sla', titulo: 'SLA em risco', subtitulo: 'Contagem regressiva para o vencimento' },
   {
@@ -57,6 +59,7 @@ export default function PainelTv() {
   const navigate = useNavigate()
   const relogio = useRelogio()
   const [indice, setIndice] = useState(0)
+  const { chamados, locacoes } = useAppData()
 
   // Autorrotação dos blocos a cada 15s; timer limpo ao desmontar
   useEffect(() => {
@@ -81,12 +84,26 @@ export default function PainelTv() {
   const bloco = BLOCOS[indice]
 
   const porPrioridade = useMemo(() => {
-    const abertos = MOCK_CHAMADOS.filter((c) => c.status !== 'Resolvido')
+    const abertos = chamados.filter((c) => c.status !== 'Resolvido' && c.status !== 'Fechado')
     return (['Alta', 'Média', 'Baixa'] as const).map((p) => ({
       prioridade: p,
       quantidade: abertos.filter((c) => c.prioridade === p).length,
     }))
-  }, [])
+  }, [chamados])
+
+  const emRisco = useMemo(
+    () =>
+      chamados.filter(
+        (c) => c.status !== 'Resolvido' && c.status !== 'Fechado' && slaStatusDe(c) !== 'dentro',
+      ),
+    [chamados],
+  )
+
+  const vencendo = useMemo(() => {
+    const alertas = alertasLocacao(locacoes)
+    const ids = new Set(alertas.locacoes.map((l) => l.id))
+    return locacoes.filter((l) => ids.has(l.id))
+  }, [locacoes])
 
   return (
     <div className="fixed inset-0 bg-[#0B1220] text-slate-100 overflow-y-auto font-sans antialiased">
@@ -149,9 +166,9 @@ export default function PainelTv() {
       {/* Conteúdo do bloco ativo */}
       <main className="px-6 sm:px-10 pb-8 min-h-[60vh]">
         {bloco.id === 'prioridades' && <BlocoPrioridades itens={porPrioridade} />}
-        {bloco.id === 'fila' && <BlocoFila />}
-        {bloco.id === 'sla' && <BlocoSla />}
-        {bloco.id === 'locacoes' && <BlocoLocacoes />}
+        {bloco.id === 'fila' && <BlocoFila chamados={chamados} />}
+        {bloco.id === 'sla' && <BlocoSla emRisco={emRisco} />}
+        {bloco.id === 'locacoes' && <BlocoLocacoes vencendo={vencendo} />}
       </main>
 
       {/* Rodapé discreto */}
@@ -215,12 +232,18 @@ function BlocoPrioridades({
 }
 
 /* ---------------- Bloco B: fila de atendimento com técnicos ---------------- */
-function BlocoFila() {
+function BlocoFila({ chamados }: { chamados: Chamado[] }) {
+  const fila = useMemo(() => ordenarFila(chamados).slice(0, 5), [chamados])
   return (
     <div className="space-y-4 mt-4">
-      {MOCK_FILA.map((item, i) => (
+      {fila.length === 0 && (
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center text-2xl font-bold text-slate-300">
+          Nenhum chamado na fila
+        </div>
+      )}
+      {fila.map(({ chamado }, i) => (
         <div
-          key={item.id}
+          key={chamado.id}
           className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4"
         >
           <div className="text-5xl font-bold text-slate-600 tabular-nums w-14 shrink-0">
@@ -228,25 +251,29 @@ function BlocoFila() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="font-mono text-lg font-bold text-blue-300">{item.numero}</span>
-              <span className="text-2xl font-bold text-white truncate">{item.cliente}</span>
+              <span className="font-mono text-lg font-bold text-blue-300">{chamado.numero}</span>
+              <span className="text-2xl font-bold text-white truncate">{chamado.cliente}</span>
             </div>
-            <div className="text-base text-slate-400 mt-1">{item.tipo}</div>
+            <div className="text-base text-slate-400 mt-1">{chamado.tipo}</div>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <div
               className={cn(
                 'w-11 h-11 rounded-full border text-sm font-bold flex items-center justify-center',
-                item.tecnicoAtribuido
+                chamado.tecnico
                   ? 'bg-blue-600/30 text-blue-200 border-blue-500/40'
                   : 'bg-slate-800 text-slate-400 border-slate-700',
               )}
             >
-              {item.tecnicoIniciais}
+              {chamado.tecnico ? iniciais(chamado.tecnico) : '—'}
             </div>
             <div className="text-left">
-              <div className="text-base font-semibold text-white">{item.tecnico}</div>
-              <div className="text-xs text-slate-400">{item.tempoFila}</div>
+              <div className="text-base font-semibold text-white">
+                {chamado.tecnico ?? 'Aguardando designação'}
+              </div>
+              <div className="text-xs text-slate-400">
+                na fila há {tempoEspera(chamado.aberturaISO)}
+              </div>
             </div>
           </div>
         </div>
@@ -256,8 +283,7 @@ function BlocoFila() {
 }
 
 /* ---------------- Bloco C: SLA em risco com contagem regressiva ---------------- */
-function BlocoSla() {
-  const emRisco = MOCK_CHAMADOS.filter((c) => c.slaStatus !== 'dentro' && c.status !== 'Resolvido')
+function BlocoSla({ emRisco }: { emRisco: Chamado[] }) {
   return (
     <div className="space-y-4 mt-4">
       {emRisco.length === 0 && (
@@ -266,67 +292,70 @@ function BlocoSla() {
           <p className="text-2xl font-bold text-emerald-200 mt-3">Nenhum SLA em risco agora</p>
         </div>
       )}
-      {emRisco.map((c: Chamado) => (
-        <div
-          key={c.id}
-          className={cn(
-            'rounded-2xl border p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4',
-            c.slaStatus === 'vencido'
-              ? 'border-red-800 bg-red-950/40'
-              : 'border-amber-800 bg-amber-950/40',
-          )}
-        >
-          <AlertTriangle
+      {emRisco.map((c) => {
+        const status = slaStatusDe(c)
+        return (
+          <div
+            key={c.id}
             className={cn(
-              'w-9 h-9 shrink-0',
-              c.slaStatus === 'vencido' ? 'text-red-400' : 'text-amber-400',
+              'rounded-2xl border p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4',
+              status === 'vencido'
+                ? 'border-red-800 bg-red-950/40'
+                : 'border-amber-800 bg-amber-950/40',
             )}
-            aria-hidden="true"
-          />
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="font-mono text-lg font-bold text-slate-200">{c.numero}</span>
-              <span className="text-2xl font-bold text-white truncate">{c.cliente}</span>
-            </div>
-            <div className="text-base text-slate-300 mt-1 truncate">{c.descricao || c.tipo}</div>
-          </div>
-          <div className="text-right shrink-0">
-            <div
+          >
+            <AlertTriangle
               className={cn(
-                'text-3xl sm:text-4xl font-bold tabular-nums',
-                c.slaStatus === 'vencido' ? 'text-red-300' : 'text-amber-300',
+                'w-9 h-9 shrink-0',
+                status === 'vencido' ? 'text-red-400' : 'text-amber-400',
               )}
-            >
-              {c.slaTexto}
+              aria-hidden="true"
+            />
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-mono text-lg font-bold text-slate-200">{c.numero}</span>
+                <span className="text-2xl font-bold text-white truncate">{c.cliente}</span>
+              </div>
+              <div className="text-base text-slate-300 mt-1 truncate">{c.descricao || c.tipo}</div>
             </div>
-            <div className="text-sm text-slate-400 mt-0.5">SLA · {c.tempoDecorrido}</div>
+            <div className="text-right shrink-0">
+              <div
+                className={cn(
+                  'text-3xl sm:text-4xl font-bold tabular-nums',
+                  status === 'vencido' ? 'text-red-300' : 'text-amber-300',
+                )}
+              >
+                {textoRestanteSLA(c)}
+              </div>
+              <div className="text-sm text-slate-400 mt-0.5">
+                SLA · na fila há {tempoEspera(c.aberturaISO)}
+              </div>
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
 
 /* ---------------- Bloco D: locações vencendo nos próximos 7 dias ---------------- */
-function BlocoLocacoes() {
-  const vencendo = MOCK_LOCACOES.filter(
-    (l) => l.status === 'Vencendo em 7 dias' || l.status === 'Ativo',
-  )
+function BlocoLocacoes({ vencendo }: { vencendo: Locacao[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-4">
+      {vencendo.length === 0 && (
+        <div className="rounded-2xl border border-emerald-900 bg-emerald-950/40 p-8 text-center md:col-span-2">
+          <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto" aria-hidden="true" />
+          <p className="text-2xl font-bold text-emerald-200 mt-3">
+            Nenhuma locação vencendo nos próximos 7 dias
+          </p>
+        </div>
+      )}
       {vencendo.map((l) => (
         <div key={l.id} className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <span className="text-2xl font-bold text-white truncate">{l.cliente}</span>
-            <span
-              className={cn(
-                'px-3 py-1 rounded-full text-sm font-semibold shrink-0',
-                l.status === 'Vencendo em 7 dias'
-                  ? 'bg-amber-950/80 text-amber-300 border border-amber-800'
-                  : 'bg-emerald-950/80 text-emerald-300 border border-emerald-800',
-              )}
-            >
-              {l.status}
+            <span className="px-3 py-1 rounded-full text-sm font-semibold shrink-0 bg-amber-950/80 text-amber-300 border border-amber-800">
+              {statusVencimento(l)}
             </span>
           </div>
           <div className="text-base text-slate-300 mt-2 flex items-center gap-2">
@@ -338,10 +367,35 @@ function BlocoLocacoes() {
               <CalendarClock className="w-5 h-5" aria-hidden="true" />
               Fim em {l.dataFim}
             </span>
-            <span className="font-bold text-white tabular-nums">{l.valorMensal || '—'}</span>
+            <span className="font-bold text-white tabular-nums">{fmtBRL(l.valorMensal)}/mês</span>
           </div>
         </div>
       ))}
     </div>
   )
 }
+
+function iniciais(nome: string) {
+  return nome
+    .split(' ')
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase()
+}
+
+function statusVencimento(l: Locacao) {
+  if (l.status === 'Encerrado') return 'Encerrado'
+  const dias = diasRestantes(l)
+  if (dias < 0) return `vencida há ${Math.abs(dias)} dia(s)`
+  if (dias === 0) return 'vence hoje'
+  return `vence em ${dias} dia(s)`
+}
+
+function diasRestantes(l: Locacao) {
+  return Math.ceil(
+    (new Date(l.dataFim.split('/').reverse().join('-')).getTime() - HOJE.getTime()) / 86_400_000,
+  )
+}
+
+const HOJE = new Date('2025-06-10T09:00:00')

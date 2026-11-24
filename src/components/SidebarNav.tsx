@@ -14,20 +14,19 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
 } from 'lucide-react'
-import { MOCK_LOCACOES, MOCK_CHAMADOS } from '@/data/mockData'
+import { useAppData } from '@/state/AppDataContext'
 import { cn } from '@/lib/utils'
 
 interface NavItemConfig {
   path: string
   label: string
   icon: React.ElementType
-  badgeCount?: number
 }
 
 const navItems: NavItemConfig[] = [
   { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/locacoes', label: 'Locações', icon: Box, badgeCount: MOCK_LOCACOES.length },
-  { path: '/chamados', label: 'Chamados', icon: Ticket, badgeCount: MOCK_CHAMADOS.length },
+  { path: '/locacoes', label: 'Locações', icon: Box },
+  { path: '/chamados', label: 'Chamados', icon: Ticket },
   { path: '/clientes', label: 'Clientes', icon: Users },
   { path: '/relatorios', label: 'Relatórios', icon: BarChart3 },
   { path: '/gestao', label: 'Visão de Resultado', icon: Gauge },
@@ -44,7 +43,12 @@ export default function SidebarNav({
   onNavigate: () => void
   compact?: boolean
 }) {
+  const { chamados, locacoes } = useAppData()
   const py = compact ? 'py-4' : 'py-5'
+  const contadores: Record<string, number> = {
+    '/locacoes': locacoes.filter((l) => l.status !== 'Encerrado').length,
+    '/chamados': chamados.filter((c) => c.status !== 'Fechado').length,
+  }
   return (
     <nav className={`flex-1 px-3 ${py} space-y-1.5 overflow-y-auto`}>
       <div className="px-3 pb-2 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
@@ -79,7 +83,7 @@ export default function SidebarNav({
                 />
                 <span className="truncate">{item.label}</span>
               </div>
-              {item.badgeCount !== undefined && (
+              {contadores[item.path] !== undefined && (
                 <span
                   className={cn(
                     'inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full shrink-0',
@@ -88,7 +92,7 @@ export default function SidebarNav({
                       : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700',
                   )}
                 >
-                  {item.badgeCount}
+                  {contadores[item.path]}
                 </span>
               )}
             </>

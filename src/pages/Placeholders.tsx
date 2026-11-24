@@ -1,12 +1,12 @@
 import React from 'react'
-import { Box, Ticket, Users, BarChart3, ArrowLeft, Calendar, Layers, Sparkles } from 'lucide-react'
+import { Users, BarChart3, ArrowLeft, Calendar, Layers, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 interface PlaceholderProps {
   titulo: string
   subtitulo: string
   descricao: string
-  tipo: 'locacoes' | 'chamados' | 'clientes' | 'relatorios'
+  tipo: 'clientes' | 'relatorios'
   recursosPlanejados: string[]
 }
 
@@ -19,10 +19,6 @@ export function PlaceholderPage({
 }: PlaceholderProps) {
   const getIcon = () => {
     switch (tipo) {
-      case 'locacoes':
-        return <Box className="w-12 h-12 text-blue-600" />
-      case 'chamados':
-        return <Ticket className="w-12 h-12 text-indigo-600" />
       case 'clientes':
         return <Users className="w-12 h-12 text-emerald-600" />
       case 'relatorios':
@@ -32,10 +28,6 @@ export function PlaceholderPage({
 
   const getBadgeColor = () => {
     switch (tipo) {
-      case 'locacoes':
-        return 'bg-blue-50 text-blue-700 border-blue-200'
-      case 'chamados':
-        return 'bg-indigo-50 text-indigo-700 border-indigo-200'
       case 'clientes':
         return 'bg-emerald-50 text-emerald-700 border-emerald-200'
       case 'relatorios':
@@ -90,40 +82,6 @@ export function PlaceholderPage({
         </Link>
       </div>
     </div>
-  )
-}
-
-export function LocacoesPage() {
-  return (
-    <PlaceholderPage
-      tipo="locacoes"
-      titulo="Locações"
-      subtitulo="Gestão completa de contratos de locação em breve."
-      descricao="Aqui você poderá gerenciar o ciclo de vida de contratos de locação de impressoras, desktops, notebooks e dispositivos móveis, com renovações e faturamento automático."
-      recursosPlanejados={[
-        'Cadastro e renovação de contratos de locação',
-        'Controle de números de série e patrimônio alocado',
-        'Alertas de vencimento antecipado em 30, 15 e 7 dias',
-        'Emissão de termos de entrega e devolução',
-      ]}
-    />
-  )
-}
-
-export function ChamadosPage() {
-  return (
-    <PlaceholderPage
-      tipo="chamados"
-      titulo="Chamados"
-      subtitulo="Central de chamados e SLA em breve."
-      descricao="Aqui você terá o Service Desk completo com abertura de tickets N1/N2/N3, regras estritas de SLA, histórico de atendimento e automação de roteamento."
-      recursosPlanejados={[
-        'Abertura de chamados por e-mail, portal e WhatsApp',
-        'Temporizador de SLA com escalonamento automático',
-        'Atribuição inteligente por fila de especialidade',
-        'Base de conhecimento e apontamento de horas',
-      ]}
-    />
   )
 }
 
