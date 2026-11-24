@@ -76,7 +76,13 @@ export default function FormNovoChamado({
     () =>
       form.cliente
         ? classificarChamado(
-            { ...form, prazoHoras: form.prazoHoras },
+            {
+              clienteNome: form.cliente,
+              tipo: form.tipo,
+              descricao: form.descricao,
+              equipamento: form.equipamento || undefined,
+              prazoHoras: tipoProjeto ? form.prazoHoras : undefined,
+            },
             {
               clientes,
               locacoes,

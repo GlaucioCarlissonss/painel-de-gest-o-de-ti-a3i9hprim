@@ -127,7 +127,7 @@ export default function Index() {
           className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3.5"
           role="alert"
         >
-          <CalendarRefresh className="w-5 h-5 text-amber-600 shrink-0" />
+          <CalendarClock className="w-5 h-5 text-amber-600 shrink-0" />
           <p className="text-sm text-amber-800">
             <strong>
               {alertas.total} locaç{alertas.total === 1 ? 'ão' : 'ões'} vencendo em até 7 dias:

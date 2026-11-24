@@ -1,7 +1,7 @@
 // Gestão de Locações (Onda 2): lista completa, cadastro, edição, renovação e
 // histórico de locações encerradas por cliente. Sem persistência real.
 import { useMemo, useState } from 'react'
-import { Plus, Pencil, CalendarRefresh, ArchiveRestore, Database, Search } from 'lucide-react'
+import { Plus, Pencil, CalendarClock, ArchiveRestore, Database, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -139,7 +139,7 @@ export default function LocacoesGestao() {
           className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
           role="alert"
         >
-          <CalendarRefresh className="w-5 h-5 shrink-0" />
+          <CalendarClock className="w-5 h-5 shrink-0" />
           <p>
             <strong>
               {alertas.total} locaç{alertas.total === 1 ? 'ão' : 'ões'} vencendo em até 7 dias
@@ -266,7 +266,7 @@ export default function LocacoesGestao() {
                           title="Renovar locação"
                           className="text-blue-700 border-blue-200 hover:bg-blue-50"
                         >
-                          <CalendarRefresh className="w-3.5 h-3.5" />
+                          <CalendarClock className="w-3.5 h-3.5" />
                         </Button>
                         <Button
                           size="sm"
