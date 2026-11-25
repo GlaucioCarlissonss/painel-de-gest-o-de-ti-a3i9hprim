@@ -48,6 +48,7 @@ export default function SidebarNav({
   const contadores: Record<string, number> = {
     '/locacoes': locacoes.filter((l) => l.status !== 'Encerrado').length,
     '/chamados': chamados.filter((c) => c.status !== 'Fechado').length,
+    '/clientes': chamados.filter((c) => c.abertoViaPortal && c.status !== 'Fechado').length,
   }
   return (
     <nav className={`flex-1 px-3 ${py} space-y-1.5 overflow-y-auto`}>

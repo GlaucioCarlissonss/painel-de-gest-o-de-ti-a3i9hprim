@@ -42,7 +42,7 @@ interface AppDataContexto {
   locacoes: Locacao[]
   clientes: typeof CLIENTES
   tecnicos: Tecnico[]
-  abrirChamado: (entrada: EntradaChamado) => Chamado
+  abrirChamado: (entrada: EntradaChamado, viaPortal?: boolean) => Chamado
   moverChamado: (id: string, novoStatus: StatusChamado) => void
   atribuirTecnico: (id: string, tecnicoNome: string) => void
   escalonarChamado: (id: string) => void
@@ -66,7 +66,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const abrirChamado = useCallback(
-    (entrada: EntradaChamado): Chamado => {
+    (entrada: EntradaChamado, viaPortal = false): Chamado => {
       const resultado = classificarChamado(entrada, {
         clientes: CLIENTES,
         locacoes,
@@ -83,8 +83,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         {
           id: novoId('ev'),
           dataHora: aberturaISO,
-          autor: USUARIO_LOGADO.nome,
-          descricao: `Chamado aberto pelo gestor (${entrada.tipo})`,
+          autor: viaPortal ? entrada.clienteNome : USUARIO_LOGADO.nome,
+          descricao: viaPortal
+            ? `Chamado aberto via Portal do Cliente (${entrada.tipo})`
+            : `Chamado aberto pelo gestor (${entrada.tipo})`,
           tipo: 'abertura',
         },
         ...resultado.motivos.map((m, i) => ({
@@ -136,6 +138,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         descricao: entrada.descricao,
         tecnico: designado?.nome,
         timeline: eventos,
+        abertoViaPortal: viaPortal,
       }
       setChamados((prev) => [chamado, ...prev])
       return chamado

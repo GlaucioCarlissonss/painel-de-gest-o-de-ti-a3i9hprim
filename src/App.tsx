@@ -6,8 +6,9 @@ import { AppDataProvider } from './state/AppDataContext'
 import Index from './pages/Index'
 import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
-import { ClientesPage, RelatoriosPage } from './pages/Placeholders'
 import ChamadosCentral from './pages/ChamadosCentral'
+import PortalCliente from './pages/PortalCliente'
+import Relatorios from './pages/Relatorios'
 import LocacoesGestao from './pages/LocacoesGestao'
 import GestaoResultados from './pages/GestaoResultados'
 import MapaFiliais from './pages/MapaFiliais'
@@ -29,8 +30,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/locacoes" element={<LocacoesGestao />} />
             <Route path="/chamados" element={<ChamadosCentral />} />
-            <Route path="/clientes" element={<ClientesPage />} />
-            <Route path="/relatorios" element={<RelatoriosPage />} />
+            <Route path="/clientes" element={<PortalCliente />} />
+            <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/gestao" element={<GestaoResultados />} />
             <Route path="/mapa" element={<MapaFiliais />} />
             <Route path="/financeiro/pagar" element={<TitulosPagar />} />

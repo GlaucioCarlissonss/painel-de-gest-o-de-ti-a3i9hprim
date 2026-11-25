@@ -67,6 +67,8 @@ export interface Chamado {
   descricao?: string
   tecnico?: string // undefined = aguardando atribuição
   timeline: EventoTimeline[]
+  /** True quando o chamado foi aberto pelo cliente no Portal (Fase 8). */
+  abertoViaPortal?: boolean
 }
 
 export interface Tecnico {
