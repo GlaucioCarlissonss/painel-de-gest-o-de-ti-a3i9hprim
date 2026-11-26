@@ -121,8 +121,10 @@ migrate(
       { name: 'latitude', type: 'number', required: true },
       { name: 'longitude', type: 'number', required: true },
       { name: 'status', type: 'select', values: ['ok', 'risco', 'critico'], required: true },
-      { name: 'equipamentosLocados', type: 'number', required: true },
-      { name: 'chamadosAbertos', type: 'number', required: true },
+      // Contadores podem legitimamente ser 0 — PocketBase rejeita 0 em number
+      // required ("cannot be blank"), então ficam opcionais.
+      { name: 'equipamentosLocados', type: 'number' },
+      { name: 'chamadosAbertos', type: 'number' },
       { name: 'tecnicoResponsavel', type: 'text', required: true },
       { name: 'cliente', type: 'text', required: true },
     ])

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T01:55:26.620Z",
+  "generatedAt": "2026-11-26T02:12:26.714Z",
   "collections": [
     {
       "name": "users",
@@ -43,6 +43,457 @@
         "CREATE UNIQUE INDEX `idx_tokenKey__pb_users_auth_` ON `users` (`tokenKey`)",
         "CREATE UNIQUE INDEX `idx_email__pb_users_auth_` ON `users` (`email`) WHERE `email` != ''"
       ]
+    },
+    {
+      "name": "clientes",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "",
+        "update": "",
+        "delete": ""
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "segmento",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "contrato",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["enterprise", "padrao"]
+        },
+        {
+          "name": "critico",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "contato_nome",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "contato_email",
+          "type": "email",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "contato_telefone",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "perfil",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["cliente_externo"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "equipamentos",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "",
+        "update": "",
+        "delete": ""
+      },
+      "fields": [
+        {
+          "name": "tipo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "modelo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "numero_serie",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "status_locacao",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["disponivel", "locado", "manutencao", "encerrado"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "locacoes",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "",
+        "update": "",
+        "delete": ""
+      },
+      "fields": [
+        {
+          "name": "cliente",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "equipamento",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "tipoEquipamento",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "dataInicio",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "dataFim",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Ativo", "Vencendo em 7 dias", "Encerrado"]
+        },
+        {
+          "name": "valorMensal",
+          "type": "number",
+          "required": true,
+          "system": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "tecnicos",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "",
+        "update": "",
+        "delete": ""
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "iniciais",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "nivel",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["N1", "N2", "Gestor"]
+        },
+        {
+          "name": "especialidades",
+          "type": "json",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "disponivel",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "perfil",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["tecnico_n1", "tecnico_n2", "admin"]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "chamados",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "",
+        "update": "",
+        "delete": ""
+      },
+      "fields": [
+        {
+          "name": "numero",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cliente",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "equipamento",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tipo",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "prioridade",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Alta", "Média", "Baixa"]
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Aberto", "Em Atendimento", "Escalonado", "Resolvido", "Fechado"]
+        },
+        {
+          "name": "aberturaISO",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "slaHoras",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "prazoISO",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tecnico",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "abertoViaPortal",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "timeline",
+          "type": "json",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "filiais",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "",
+        "update": "",
+        "delete": ""
+      },
+      "fields": [
+        {
+          "name": "nome",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cidade",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "estado",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "latitude",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "longitude",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["ok", "risco", "critico"]
+        },
+        {
+          "name": "equipamentosLocados",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "chamadosAbertos",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "tecnicoResponsavel",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "cliente",
+          "type": "text",
+          "required": true,
+          "system": false
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "titulos",
+      "type": "base",
+      "apiRules": {
+        "list": "",
+        "view": "",
+        "create": "",
+        "update": "",
+        "delete": ""
+      },
+      "fields": [
+        {
+          "name": "tipo",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pagar", "receber"]
+        },
+        {
+          "name": "parte",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "descricao",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "categoria",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "valor",
+          "type": "number",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "vencimento",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["Pago", "Pendente", "Vencido"]
+        },
+        {
+          "name": "locacaoVinculada",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "chamadoVinculado",
+          "type": "text",
+          "required": false,
+          "system": false
+        }
+      ],
+      "indexes": []
     }
   ]
 }
