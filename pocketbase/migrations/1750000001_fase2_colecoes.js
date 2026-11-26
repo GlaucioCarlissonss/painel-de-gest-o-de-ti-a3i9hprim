@@ -1,25 +1,39 @@
 // Migração Fase 2 — coleções reais do Painel de Gestão de TI (Skip Cloud).
 // Cria as coleções de operação (clientes, equipamentos, locacoes, chamados,
-// chamado_eventos, tecnicos, filiais, titulos) e o seed idempotente com os
-// dados que o usuário já validou visualmente (mocks das ondas 1 e 2).
-// O seed é no-op em banco já populado (checagem por contagem de registros).
+// tecnicos, filiais, titulos) e o seed idempotente com os dados que o usuário
+// já validou visualmente (mocks das ondas 1 e 2).
+// O seed é no-op em banco já populado (checagem por presença de registros).
 
 migrate(
   (app) => {
     /* ------------------------------------------------------------------
      * 1. COLEÇÕES
      * ------------------------------------------------------------------ */
-    const criar = (nome, campos, regraLivre = false) => {
-      if (app.findCollectionByNameOrId(nome)) return
+    // findCollectionByNameOrId LANÇA "sql: no rows in result set" quando a
+    // coleção NÃO existe — essa era a causa do erro ao aplicar esta migração.
+    // A checagem precisa de try/catch, nunca de retorno direto.
+    const colecaoExiste = (nome) => {
+      try {
+        app.findCollectionByNameOrId(nome)
+        return true
+      } catch (e) {
+        return false
+      }
+    }
+
+    const criar = (nome, campos) => {
+      if (colecaoExiste(nome)) return
       const col = new Collection({
         name: nome,
         type: 'base',
-        listRule: regraLivre ? null : '',
-        viewRule: regraLivre ? null : '',
-        createRule: regraLivre ? null : '',
-        updateRule: regraLivre ? null : '',
-        deleteRule: regraLivre ? null : '',
-        fields: campos,
+        // Regra "" (string vazia) = acesso público; null deixaria tudo
+        // apenas para superusuários e quebraria as leituras do app.
+        listRule: '',
+        viewRule: '',
+        createRule: '',
+        updateRule: '',
+        deleteRule: '',
+        fields: campos.map((c) => (c.type === 'select' ? { maxSelect: 1, ...c } : c)),
       })
       app.save(col)
     }
@@ -128,11 +142,21 @@ migrate(
     /* ------------------------------------------------------------------
      * 2. SEED IDEMPOTENTE — no-op em banco já populado
      * ------------------------------------------------------------------ */
+    // Seed idempotente: só insere quando a coleção está vazia.
+    // Dois pontos críticos do JSVM:
+    //  - findRecordsByFilter para checar se já há registros;
+    //  - new Record exige a INSTÂNCIA da Collection (não o nome) — passar a
+    //    string causa "nil pointer dereference".
     const seedSeVazio = (nomeColecao, registros, montar) => {
-      if (app.count(new RecordFilter(nomeColecao)) > 0) return // já populado
+      const colecao = app.findCollectionByNameOrId(nomeColecao)
+      const jaTem = app.findRecordsByFilter(nomeColecao, 'id != ""', '', 1, 0).length > 0
+      if (jaTem) return
       for (const r of registros) {
-        const rec = new Record(nomeColecao)
-        rec.set(montar(r))
+        const rec = new Record(colecao)
+        const dados = montar(r)
+        for (const k of Object.keys(dados)) {
+          rec.set(k, dados[k])
+        }
         app.save(rec)
       }
     }
@@ -217,7 +241,7 @@ migrate(
       }),
     )
 
-    // --- Técnicos (perfis usuários: N1 / N2 / admin) ---
+    // --- Técnicos (perfis de operação: N1 / N2 / admin) ---
     seedSeVazio(
       'tecnicos',
       [
@@ -280,7 +304,7 @@ migrate(
       }),
     )
 
-    // --- Equipamentos (frota das locações validadas, ~248 unidades em KPI) ---
+    // --- Equipamentos (frota das locações validadas) ---
     seedSeVazio(
       'equipamentos',
       [
